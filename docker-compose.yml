@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: idx-postgres
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  airflow:
+    image: apache/airflow:2.9.2
+    container_name: idx-airflow
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+      AIRFLOW__WEBSERVER__WEB_SERVER_PORT: "8080"
+      AIRFLOW__WEBSERVER__BASE_URL: "http://localhost:8080"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/airflow_meta"
+      _PIP_ADDITIONAL_REQUIREMENTS: "yfinance psycopg2-binary pandas"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./etl:/opt/airflow/etl
+      - ./airflow/requirements.txt:/requirements.txt
+      - ./airflow/logs:/opt/airflow/logs
+    command: |
+      bash -lc '
+        set -e
+        pip install -r /requirements.txt
+        # migrate jika sudah ada DB; init jika fresh
+        airflow db migrate || airflow db init
+        airflow users create \
+          --username admin \
+          --password admin \
+          --firstname "Hardy" \
+          --lastname "Gustino" \
+          --role Admin \
+          --email hardy@example.com || true
+        # jalankan scheduler di background, webserver di foreground (log ke docker logs)
+        airflow scheduler & exec airflow webserver -p 8080
+      '
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # tanpa curl/wget: tes socket 8080 langsung
+      test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+volumes:
+  pgdata:
