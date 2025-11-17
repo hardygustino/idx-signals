@@ -1,7 +1,7 @@
-# IDX Signals ETL Pipeline (Airflow + PostgreSQL)
+# IDX Signals ELT Pipeline (Airflow + PostgreSQL)
 
 ## Deskripsi Proyek
-Proyek ini merupakan pipeline ETL otomatis yang dirancang untuk mengambil data harga saham dari IDX (Bursa Efek Indonesia), melakukan transformasi data, dan menyimpannya ke dalam PostgreSQL menggunakan Apache Airflow.  
+Proyek ini merupakan pipeline ELT otomatis yang dirancang untuk mengambil data harga saham dari IDX (Bursa Efek Indonesia), melakukan transformasi data, dan menyimpannya ke dalam PostgreSQL menggunakan Apache Airflow.  
 Tujuan utama proyek ini adalah membangun data pipeline yang dapat dijadwalkan dan diotomatisasi agar data selalu terbarui dan siap untuk analisis lebih lanjut.
 
 ---
@@ -9,8 +9,8 @@ Tujuan utama proyek ini adalah membangun data pipeline yang dapat dijadwalkan da
 ## Arsitektur Proyek
 Pipeline ini berjalan di dalam Docker environment menggunakan tiga komponen utama:
 1. **PostgreSQL** sebagai penyimpanan data mentah, staging, dan hasil transformasi.
-2. **Apache Airflow** sebagai pengatur alur ETL (Extract, Transform, Load) dan penjadwalan otomatis.
-3. **Python Scripts (ETL)** sebagai proses pengambilan dan pembersihan data.
+2. **Apache Airflow** sebagai pengatur alur ELT (Extract, Transform, Load) dan penjadwalan otomatis.
+3. **Python Scripts (ELT)** sebagai proses pengambilan dan pembersihan data.
 
 **Struktur folder:**
 IDX-SIGNALS/
@@ -36,7 +36,7 @@ IDX-SIGNALS/
 
 ---
 
-## Alur ETL
+## Alur ELT
 1. **Extract (fetch_prices.py)**  
    Mengambil data harga saham dari Yahoo Finance melalui pustaka `yfinance`, kemudian menyimpannya ke tabel:
    - `public.raw_prices`
@@ -51,7 +51,7 @@ IDX-SIGNALS/
    - `public.dwh_features_prices`
 
 3. **Load (DAG Airflow)**  
-   Kedua script ETL diatur dan dijalankan otomatis oleh Airflow:
+   Kedua script ELT diatur dan dijalankan otomatis oleh Airflow:
    - `idx_prices_hourly.py` menjalankan proses extract secara berkala (hourly).  
    - `idx_features_hourly.py` menjalankan proses transformasi setelah extract selesai.
 
@@ -91,7 +91,7 @@ Hasil Akhir
 
 Pipeline berhasil menghasilkan data bersih dan siap digunakan untuk analisis.
 Data disimpan di PostgreSQL dan dapat digunakan untuk pembuatan dashboard (Power BI) atau analisis lanjutan seperti machine learning.
-Airflow secara otomatis menjalankan proses ETL sesuai jadwal yang ditentukan (hourly atau daily).
+Airflow secara otomatis menjalankan proses ELT sesuai jadwal yang ditentukan (hourly atau daily).
 
 Teknologi yang Digunakan
     Python 3.12
